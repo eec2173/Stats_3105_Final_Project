@@ -1,0 +1,204 @@
+---
+title: "Project3"
+author: "Ethan Chen - eec2173"
+date: "12/14/2020"
+output: pdf_document
+---
+
+```{r}
+reads <- read.csv("proportion_plots.csv")
+head(reads)
+length(reads$site)
+```
+
+```{r}
+plot(proportion~distance, main="Proportion vs. Distance (raw data)", data=reads)
+abline(lm(proportion~distance, data=reads))
+```
+
+```{r}
+for(i in 1:length(reads$site)){
+  if(reads$media[i]=='s'){
+    reads$col[i] <- 1
+  }
+  else if(reads$media[i]=='l'){
+    reads$col[i] <- 2
+  }
+}
+plot(proportion~distance, col=col, main="Proportion vs. Distance (solid/liquid)", data=reads)
+med <- c(1, 2)
+legend("topright", cex=0.75, legend=c("solid", "liquid"), fill=med)
+
+#plotting visualized by solid/liquid media
+plot(proportion[reads$col==1]~distance[reads$col==1], main="Proportion vs. Distance (solid)", data=reads)
+abline(lm(reads$proportion[reads$col==1]~reads$distance[reads$col==1]), col="black")
+
+plot(proportion[reads$col==2]~distance[reads$col==2], col="red", main="Proportion vs. Distance (liquid)", data=reads)
+abline(lm(reads$proportion[reads$col==2]~reads$distance[reads$col==2]), col="red")
+```
+
+
+```{r}
+#plotting visualized by forward/reverse strand
+plot(proportion[reads$strand=='f']~distance[reads$strand=='f'], data=reads)
+abline(lm(reads$proportion[reads$strand=='f']~reads$distance[reads$strand=='f']), col="red")
+
+
+plot(proportion[reads$strand=='r']~distance[reads$strand=='r'], data=reads)
+abline(lm(reads$proportion[reads$strand=='r']~reads$distance[reads$strand=='r']), col="blue")
+```
+
+```{r}
+#removed data points that had proportions greater than 1
+cleaned <- reads[reads$proportion<=1,]
+head(cleaned)
+length(cleaned$site)
+
+plot(proportion~distance, main="Proportion vs. Distance (cleaned)", data=cleaned)
+abline(lm(proportion~distance, data=cleaned))
+```
+
+```{r}
+#plotting visualized by solid/liquid media
+plot(proportion[cleaned$media=='s']~distance[cleaned$media=='s'], main="Solid, cleaned", xlab="distance", ylab="proportion", data=cleaned)
+abline(lm(proportion[cleaned$media=='s']~distance[cleaned$media=='s'], data=cleaned), col="black")
+
+plot(proportion[cleaned$media=='l']~distance[cleaned$media=='l'], main="Liquid, cleaned", xlab="distance", ylab="proportion", col="red", data=cleaned)
+abline(lm(proportion[cleaned$media=='l']~distance[cleaned$media=='l'], data=cleaned), col="red")
+```
+
+```{r}
+#plotting visualized by forward/reverse strand
+plot(proportion[cleaned$strand=='f']~distance[cleaned$strand=='f'], main="Forward, cleaned", xlab="distance", ylab="proportion", data=cleaned)
+abline(lm(proportion[cleaned$media=='s']~distance[cleaned$media=='s'], data=cleaned))
+
+plot(proportion[cleaned$strand=='r']~distance[cleaned$strand=='r'], main="Reverse, cleaned", xlab="distance", ylab="proportion", col="red", data=cleaned)
+abline(lm(proportion[cleaned$media=='l']~distance[cleaned$media=='l'], data=cleaned), col="red")
+```
+
+
+
+```{r}
+l <- lm(proportion~distance, data=cleaned)
+summary(l)
+#plot(l$residuals)
+plot(l, 1)
+
+s <- lm(proportion~media, data=cleaned)
+summary(s)
+plot(s, 1)
+#plot(s$residuals)
+
+f <- lm(proportion~strand, data=cleaned)
+summary(f)
+plot(f, 1)
+
+```
+
+```{r}
+l2 <- lm(proportion~distance, data=cleaned[cleaned$media=='s',])
+summary(l2)
+#plot(l2$residuals)
+
+l3 <- lm(proportion~distance, data=cleaned[cleaned$media=='l',])
+summary(l3)
+plot(l3$residuals)
+plot(l3, 1)
+
+l4 <- lm(proportion~distance, data=cleaned[cleaned$strand=='f',])
+summary(l4)
+#plot(l4$residuals)
+
+l5 <- lm(proportion~distance, data=cleaned[cleaned$strand=='r',])
+summary(l5)
+#plot(l5$residuals)
+```
+
+```{r}
+ls <- lm(proportion~distance+media, data=cleaned)
+summary(ls)
+plot(ls, 1)
+#plot(ls$residuals)
+
+lf <- lm(proportion~distance+strand, data=cleaned)
+summary(lf)
+#plot(lf$residuals)
+
+lsf <- lm(proportion~distance+media+strand, data=cleaned)
+summary(lsf)
+#plot(lsf$residuals)
+
+sf <- lm(proportion~media+strand, data=cleaned)
+summary(sf)
+```
+
+```{r}
+#exponential models:
+le <- lm(log(proportion+0.1)~distance, data=cleaned)
+summary(le)
+plot(le, 1)
+
+le2 <- lm(proportion~log(distance), data=cleaned)
+summary(le2)
+plot(1e2, 1)
+```
+
+
+```{r}
+plot(proportion~distance, main="model fitting", data=cleaned)
+points(l$fitted.values, col="red")
+med <- c("black", "red")
+legend("topright", cex=0.75, legend=c("cleaned data", "distance model"), fill=med)
+```
+
+```{r}
+plot(proportion~distance, main="model fitting", data=cleaned)
+points(s$fitted.values, col="blue")
+med <- c("black", "blue")
+legend("topright", cex=0.75, legend=c("cleaned data", "media model"), fill=med)
+```
+
+```{r}
+plot(proportion~distance, main="model fitting", data=cleaned)
+points(f$fitted.values, col="green")
+med <- c("black", "green")
+legend("topright", cex=0.75, legend=c("cleaned data", "strand model"), fill=med)
+```
+```{r}
+plot(proportion~distance, main="model fitting liquid", data=cleaned[cleaned$media=="l",])
+points(l3$fitted.values, col="green")
+med <- c("black", "green")
+legend("topright", cex=0.75, legend=c("cleaned data", "liquid model"), fill=med)
+```
+
+
+#find best model with lowest residuals: 
+
+```{r}
+#if(!require(coin)){install.packages("coin")}
+library(coin)
+#install.packages("lmPerm")
+library(lmPerm)
+```
+
+```{r}
+independence_test(proportion~distance, data=cleaned)
+```
+
+```{r}
+tt <- t.test(proportion~media,data=cleaned,var.equal=TRUE)
+tt
+tt2 <- t.test(proportion~strand,data=cleaned,var.equal=TRUE)
+tt2
+```
+
+```{r}
+summary(lmp(proportion~media,data=cleaned))
+summary(lmp(proportion~strand,data=cleaned))
+summary(lmp(proportion~distance,data=cleaned))
+```
+
+
+
+
+
